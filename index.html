@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Dante Moretti — HOME v0.4</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050607;font-family:Arial,Helvetica,sans-serif;color:#fff}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none}
+#top{position:absolute;top:max(18px,env(safe-area-inset-top));left:20px;text-shadow:0 3px 10px #000}
+#objective{font-size:clamp(12px,3.4vw,17px);font-weight:800;letter-spacing:1.5px}
+#location{margin-top:6px;font-size:11px;letter-spacing:1.8px;opacity:.68}
+#hint{position:absolute;left:50%;bottom:calc(122px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:9px 14px;background:#050607aa;border:1px solid #ffffff24;border-radius:12px;font-size:12px;white-space:nowrap;text-shadow:0 2px 6px #000}
+#dialogue{display:none;position:absolute;left:5%;right:5%;bottom:calc(125px + env(safe-area-inset-bottom));padding:17px 19px;background:linear-gradient(90deg,#07090bf5,#07090bd9);border:1px solid #ffffff27;border-left:3px solid #e2c69a;border-radius:12px;box-shadow:0 18px 45px #000b}
+#dname{font-size:12px;font-weight:800;letter-spacing:2px;color:#dfc6a0;margin-bottom:7px}
+#dtext{font-size:16px;line-height:1.42}
+#stick{position:absolute;left:24px;bottom:calc(26px + env(safe-area-inset-bottom));width:142px;height:142px;border-radius:50%;border:1px solid #ffffff35;background:#ffffff0b;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 30px #0008}
+#knob{position:absolute;left:39px;top:39px;width:64px;height:64px;border-radius:50%;background:#c7c8c866;border:1px solid #ffffff45;box-shadow:0 7px 20px #0009}
+#action{position:absolute;right:27px;bottom:calc(43px + env(safe-area-inset-bottom));width:102px;height:102px;border-radius:50%;border:1px solid #ffffff45;background:#ffffff0b;color:#fff;font-weight:800;font-size:20px;pointer-events:auto;touch-action:none}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.2s}
+#cinema{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 150px 35px #000b}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+ <div id="top"><div id="objective">OBJECTIVE • <span id="obj">Spend some time with your family</span></div><div id="location">HOME • MIAMI, FLORIDA • 20:14</div></div>
+ <div id="hint">Mueve a Dante</div>
+ <div id="dialogue"><div id="dname"></div><div id="dtext"></div></div>
+ <div id="stick"><div id="knob"></div></div><button id="action">E</button>
+ <div id="fade"></div><div id="cinema"></div>
+</div>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+let W=innerWidth,H=innerHeight,D=Math.min(devicePixelRatio||1,2);
+function size(){W=innerWidth;H=innerHeight;D=Math.min(devicePixelRatio||1,2);c.width=W*D;c.height=H*D;x.setTransform(D,0,0,D,0,0)} addEventListener('resize',size);size();
+
+const p={x:.50,y:.76}; const mom={x:.36,y:.685}, kid={x:.64,y:.69}; let mode=0, dialog=false, joy={x:0,y:0,active:false};
+let rain=Array.from({length:180},()=>({x:Math.random(),y:Math.random(),v:.6+Math.random()*1.4,l:8+Math.random()*13}));
+function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function say(n,t){document.getElementById('dname').textContent=n;document.getElementById('dtext').textContent=t;document.getElementById('dialogue').style.display='block';dialog=true}
+function closeSay(){document.getElementById('dialogue').style.display='none';dialog=false}
+function obj(t,h){document.getElementById('obj').textContent=t;document.getElementById('hint').textContent=h||''}
+function interact(){
+ if(dialog){closeSay();return}
+ if(distance(p,kid)<.12){say('SOFIA','Dad! You are finally home.');return}
+ if(distance(p,mom)<.12){say('ELENA','You look exhausted, Dante. Come inside.');return}
+ if(p.y<.47&&Math.abs(p.x-.5)<.16){
+  if(mode===0){mode=1;obj('Talk to your family','Acércate a Elena o Sofia y pulsa E')}
+ }
+}
+document.getElementById('action').addEventListener('pointerdown',e=>{e.preventDefault();interact()});
+document.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='e')interact()});
+
+const stick=document.getElementById('stick'),knob=document.getElementById('knob');
+function moveJoy(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,xx=(e.clientX-cx)/(r.width/2),yy=(e.clientY-cy)/(r.height/2),m=Math.hypot(xx,yy);if(m>1){xx/=m;yy/=m}joy.x=xx;joy.y=yy;knob.style.transform=`translate(${xx*40}px,${yy*40}px)`}
+stick.addEventListener('pointerdown',e=>{joy.active=true;stick.setPointerCapture(e.pointerId);moveJoy(e)});
+stick.addEventListener('pointermove',e=>{if(joy.active)moveJoy(e)});
+for(const ev of ['pointerup','pointercancel'])stick.addEventListener(ev,()=>{joy.active=false;joy.x=joy.y=0;knob.style.transform=''});
+
+function person(px,py,body,skin,scale,style='normal'){
+ x.save();x.translate(px,py);x.scale(scale,scale);
+ x.fillStyle='#0009';x.beginPath();x.ellipse(0,30,23,9,0,0,Math.PI*2);x.fill();
+ // legs
+ x.strokeStyle='#17191c';x.lineWidth=8;x.lineCap='round';x.beginPath();x.moveTo(-6,30);x.lineTo(-8,55);x.moveTo(6,30);x.lineTo(9,55);x.stroke();
+ // torso
+ let g=x.createLinearGradient(-16,0,16,45);g.addColorStop(0,body);g.addColorStop(1,'#11151a');x.fillStyle=g;x.beginPath();x.roundRect(-17,-2,34,43,9);x.fill();
+ // arms
+ x.strokeStyle=body;x.lineWidth=9;x.beginPath();x.moveTo(-13,5);x.lineTo(-22,30);x.moveTo(13,5);x.lineTo(22,30);x.stroke();
+ // neck/head
+ x.fillStyle=skin;x.fillRect(-6,-8,12,11);x.beginPath();x.arc(0,-21,14,0,Math.PI*2);x.fill();
+ // hair
+ x.fillStyle='#171412';x.beginPath();x.arc(0,-25,13,Math.PI,Math.PI*2);x.fill();
+ // face light
+ x.fillStyle='#ffffff22';x.beginPath();x.ellipse(5,-21,3,5,-.2,0,Math.PI*2);x.fill();
+ x.restore();
+}
+function scene(){
+ x.clearRect(0,0,W,H);
+ // cinematic sky
+ let g=x.createLinearGradient(0,0,0,H*.66);g.addColorStop(0,'#090b16');g.addColorStop(.38,'#29283a');g.addColorStop(.72,'#756a69');g.addColorStop(1,'#b28e79');x.fillStyle=g;x.fillRect(0,0,W,H*.66);
+ // moon + haze
+ let mx=W*.76,my=H*.18;let glow=x.createRadialGradient(mx,my,3,mx,my,115);glow.addColorStop(0,'#fff0bd');glow.addColorStop(.22,'#f7dba0aa');glow.addColorStop(1,'#f7dba000');x.fillStyle=glow;x.fillRect(mx-120,my-120,240,240);
+ x.fillStyle='#f3dfb3';x.beginPath();x.arc(mx,my,24,0,Math.PI*2);x.fill();
+ // skyline silhouettes
+ x.fillStyle='#0b1110';for(let i=0;i<16;i++){let bw=30+(i%4)*22,bh=35+(i%5)*22,xx=i*W/14-20;x.fillRect(xx,H*.58-bh,bw,bh)} 
+ // trees
+ x.fillStyle='#0a1210';for(let i=0;i<13;i++){let xx=i*W/12-40,yy=H*.62;x.beginPath();x.arc(xx,yy,45+(i%3)*10,0,Math.PI*2);x.fill()}
+ // ground
+ x.fillStyle='#111714';x.fillRect(0,H*.59,W,H*.41);
+ // wet road/driveway
+ let pg=x.createLinearGradient(0,H*.6,0,H);pg.addColorStop(0,'#454b47');pg.addColorStop(1,'#141918');x.fillStyle=pg;x.beginPath();x.moveTo(W*.36,H);x.lineTo(W*.64,H);x.lineTo(W*.56,H*.61);x.lineTo(W*.44,H*.61);x.closePath();x.fill();
+ // house
+ let hy=H*.35; x.fillStyle='#57504b';x.fillRect(W*.11,hy,W*.78,H*.34);
+ x.fillStyle='#1c1a1c';x.beginPath();x.moveTo(W*.07,hy+5);x.lineTo(W*.5,H*.20);x.lineTo(W*.93,hy+5);x.closePath();x.fill();
+ // roof rim
+ x.fillStyle='#8c7869';x.fillRect(W*.12,hy,W*.76,5);
+ // windows
+ for(const wx of [W*.22,W*.67]){x.fillStyle='#19191a';x.fillRect(wx,H*.45,W*.12,H*.14);let wg=x.createLinearGradient(wx,H*.45,wx+W*.12,H*.59);wg.addColorStop(0,'#f8d99a');wg.addColorStop(1,'#9b6848');x.fillStyle=wg;x.fillRect(wx+5,H*.45+5,W*.12-10,H*.14-10);x.strokeStyle='#352c29';x.lineWidth=4;x.beginPath();x.moveTo(wx+W*.06,H*.45);x.lineTo(wx+W*.06,H*.59);x.stroke()}
+ // porch
+ x.fillStyle='#332c28';x.fillRect(W*.34,H*.68,W*.32,H*.08);x.fillStyle='#211d1c';x.fillRect(W*.45,H*.52,W*.10,H*.22);
+ // door lamp
+ let lx=W*.57,ly=H*.58,lg=x.createRadialGradient(lx,ly,2,lx,ly,80);lg.addColorStop(0,'#ffd38a66');lg.addColorStop(1,'#ffd38a00');x.fillStyle=lg;x.fillRect(lx-80,ly-80,160,160);x.fillStyle='#f6d19a';x.beginPath();x.arc(lx,ly,4,0,Math.PI*2);x.fill();
+ // rain reflections
+ x.globalAlpha=.22;for(let i=0;i<24;i++){let xx=(i*71)%W; x.fillStyle='#d5d8d0';x.fillRect(xx,H*.72+(i%5)*28,2,18)}x.globalAlpha=1;
+ // rain foreground
+ x.strokeStyle='#ffffff24';x.lineWidth=1;for(const r of rain){r.y+=.0025*r.v;if(r.y>1)r.y=-.05;x.beginPath();x.moveTo(r.x*W,r.y*H);x.lineTo(r.x*W-5,r.y*H+r.l);x.stroke()}
+ person(mom.x*W,mom.y*H,'#8b3f50','#d29a7a',.85);
+ person(kid.x*W,kid.y*H,'#b86b57','#d8a17e',.75);
+ person(p.x*W,p.y*H,'#202831','#b98268',1.05);
+ // interaction markers
+ if(distance(p,mom)<.13||distance(p,kid)<.13){x.strokeStyle='#e8d5b866';x.setLineDash([4,6]);x.beginPath();x.arc(p.x*W,p.y*H,44,0,Math.PI*2);x.stroke();x.setLineDash([])}
+}
+let last=performance.now();
+function loop(t){let dt=Math.min(40,t-last);last=t;if(!dialog){p.x+=joy.x*.00046*dt;p.y+=joy.y*.00046*dt;p.x=Math.max(.16,Math.min(.84,p.x));p.y=Math.max(.34,Math.min(.88,p.y))}
+scene();requestAnimationFrame(loop)} requestAnimationFrame(loop);
+</script>
+</body>
+</html>
