@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Dante Moretti — HOME</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080a0c;color:#fff;font-family:Arial,sans-serif;touch-action:none}
+#game{position:relative;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(#65727a 0%,#c1a47d 58%,#1d241e 58%,#101512 100%)}
+#sun{position:absolute;width:110px;height:110px;border-radius:50%;background:#ffdba0;right:12%;top:15%;filter:blur(2px);opacity:.9}
+#house{position:absolute;left:16%;bottom:22%;width:68%;height:37%;background:#6e6257;border:5px solid #403a35;box-shadow:0 18px 40px #0008}
+#roof{position:absolute;left:-5%;top:-22%;width:110%;height:35%;background:#302b29;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.window{position:absolute;top:28%;width:18%;height:25%;background:#f4d69a;border:5px solid #332d2a;box-shadow:inset 0 0 25px #ffd36b}.w1{left:12%}.w2{right:12%}
+#door{position:absolute;bottom:0;left:43%;width:18%;height:48%;background:#332821;border:4px solid #211b18}
+#path{position:absolute;bottom:0;left:45%;width:10%;height:30%;background:#8c816c;clip-path:polygon(30% 0,70% 0,100% 100%,0 100%);opacity:.8}
+#player{position:absolute;width:30px;height:52px;border-radius:14px 14px 7px 7px;background:#20242a;bottom:23%;left:50%;transform:translateX(-50%);box-shadow:0 8px 15px #0008}
+#player:before{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:#b88769;left:4px;top:-14px;border:2px solid #171717}
+#daughter{position:absolute;width:22px;height:38px;border-radius:10px;background:#9b4c55;bottom:24%;left:27%;box-shadow:0 5px 12px #0008}
+#daughter:before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#d39c7d;left:2px;top:-11px}
+#ui{position:absolute;inset:0;pointer-events:none}
+#objective{position:absolute;top:max(24px,env(safe-area-inset-top));left:20px;font-size:15px;letter-spacing:1px;text-shadow:0 2px 5px #000;font-weight:bold}
+#dialogue{position:absolute;left:5%;right:5%;bottom:14%;min-height:72px;padding:16px 18px;background:#000a;border-left:3px solid #fff;font-size:18px;line-height:1.35;opacity:0;transition:opacity .25s}
+#hint{position:absolute;left:0;right:0;bottom:5%;text-align:center;font-size:13px;opacity:.75}
+#fade{position:absolute;inset:0;background:#000;z-index:10;pointer-events:none;transition:opacity 2s}
+#controls{position:absolute;inset:0;z-index:5}
+#stick{position:absolute;left:22px;bottom:22px;width:125px;height:125px;border-radius:50%;background:#ffffff18;border:2px solid #ffffff35}
+#nub{position:absolute;width:54px;height:54px;left:33px;top:33px;border-radius:50%;background:#ffffff45}
+#act{position:absolute;right:25px;bottom:35px;width:82px;height:82px;border-radius:50%;border:2px solid #ffffff50;background:#ffffff20;color:white;font-weight:bold}
+#act:active,#nub:active{background:#ffffff55}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="sun"></div><div id="house"><div id="roof"></div><div class="window w1"></div><div class="window w2"></div><div id="door"></div></div>
+  <div id="path"></div><div id="daughter"></div><div id="player"></div>
+  <div id="controls"><div id="stick"><div id="nub"></div></div><button id="act">E</button></div>
+  <div id="ui"><div id="objective">OBJECTIVE • Spend some time with your family</div><div id="dialogue"></div><div id="hint">Move Dante with the joystick</div></div>
+  <div id="fade"></div>
+</div>
+<script>
+const player=document.getElementById('player'), daughter=document.getElementById('daughter'), dialogue=document.getElementById('dialogue'), objective=document.getElementById('objective'), hint=document.getElementById('hint'), fade=document.getElementById('fade');
+let x=50,y=0,phase=0,dx=0,dy=0,started=false;
+function say(t,ms=2200){dialogue.textContent=t;dialogue.style.opacity=1;clearTimeout(say.t);say.t=setTimeout(()=>dialogue.style.opacity=0,ms)}
+function nearDaughter(){return Math.abs(x-27)<10}
+function action(){
+ if(phase===0 && nearDaughter()){
+   phase=1; objective.textContent="OBJECTIVE • Talk to your daughter"; say("Daughter: Dad! Look what I drew!");
+ } else if(phase===1){
+   phase=2; say("Dante: That's me? ...Why am I so fat?",1600);
+   setTimeout(()=>say("Daughter: Because you eat too much!",1600),1700);
+   setTimeout(()=>say("Dante: Your mother is putting ideas in your head.",1800),3400);
+   setTimeout(()=>{objective.textContent="OBJECTIVE • Go inside the house"; hint.textContent="Walk toward the house";},5400);
+ } else if(phase===2 && x>40){
+   phase=3; say("Wife: You're home early.",1800);
+   setTimeout(()=>say("Dante: Thought I'd surprise you.",1800),2000);
+   setTimeout(()=>{objective.textContent="OBJECTIVE • Enjoy the evening";hint.textContent="Take a moment. The evening is yours.";},4200);
+   setTimeout(()=>{phase=4; objective.textContent="PHONE • Incoming call — COMMAND"; hint.textContent="Press E to answer";},9000);
+ } else if(phase===4){
+   phase=5; say("Dante: Moretti.",1200);
+   setTimeout(()=>say("COMMAND: We have a situation. Wheels up in twenty.",2200),1400);
+   setTimeout(()=>say("Dante: Understood.",1400),3900);
+   setTimeout(()=>{objective.textContent="OBJECTIVE • Get to the front door";hint.textContent="The prototype ends here.";},5600);
+ } else if(phase===5 && x<58){
+   phase=6; say("Wife: Be careful.",1300);
+   setTimeout(()=>say("Dante: I will.",1300),1500);
+   setTimeout(()=>{objective.textContent="PROLOGUE • HOME — END OF DEMO";hint.textContent="Next: THE LAST MISSION";},3300);
+ }
+}
+let stick=document.getElementById('stick'),nub=document.getElementById('nub'),active=false,cx=0,cy=0;
+function pos(e){let r=stick.getBoundingClientRect(),p=e.touches?e.touches[0]:e;cx=r.left+r.width/2;cy=r.top+r.height/2;let vx=p.clientX-cx,vy=p.clientY-cy,m=Math.min(48,Math.hypot(vx,vy));let a=Math.atan2(vy,vx);nub.style.transform=`translate(${Math.cos(a)*m}px,${Math.sin(a)*m}px)`;dx=Math.cos(a)*m/48;dy=Math.sin(a)*m/48}
+stick.addEventListener('touchstart',e=>{active=true;pos(e);e.preventDefault()},{passive:false});
+stick.addEventListener('touchmove',e=>{if(active)pos(e);e.preventDefault()},{passive:false});
+stick.addEventListener('touchend',e=>{active=false;dx=dy=0;nub.style.transform='translate(0,0)'});
+document.getElementById('act').addEventListener('touchstart',e=>{action();e.preventDefault()},{passive:false});
+setInterval(()=>{x+=dx*.32; y+=dy*.32; x=Math.max(8,Math.min(92,x)); player.style.left=x+'%';},30);
+setTimeout(()=>fade.style.opacity=0,400);
+</script>
+</body>
+</html>
